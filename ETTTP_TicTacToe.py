@@ -209,6 +209,9 @@ class TTT(tk.Tk):
 
         try:
             msg = self.socket.recv(SIZE).decode()
+            print(f"[RECV] Message received:")
+            for line in msg.strip().split("\r\n"):
+                print(f"    {line}")
         except:
             msg = ""
         msg_valid_check = check_msg(msg, self.recv_ip)
@@ -228,7 +231,11 @@ class TTT(tk.Tk):
                 return
 
             ack_msg = f"ACK ETTTP/1.0\r\nHost: {self.recv_ip}\r\nNew-Move: ({row},{col})\r\n\r\n"
+            print("[SEND] Sending ACK:")
+            for line in ack_msg.strip().split("\r\n"):
+                print(f"    {line}")
             self.socket.send(ack_msg.encode())
+
             
             ######################################################   
             
@@ -297,9 +304,11 @@ class TTT(tk.Tk):
 
         # send message and check ACK
         msg = f"SEND ETTTP/1.0\r\nHost: {self.recv_ip}\r\nNew-Move: ({row},{col})\r\n\r\n"
+        print(f"[SEND] Sending move: ({row}, {col})")  # ✅ 콘솔 출력 추가
         try:
             self.socket.send(msg.encode())
             ack = self.socket.recv(SIZE).decode()
+            print(f"[RECV] ACK Received:\n{ack}")  # ✅ 콘솔 출력 추가
             if not check_msg(ack, self.recv_ip):
                 return False
             return True
@@ -319,11 +328,13 @@ class TTT(tk.Tk):
         if get:
             try:
                 msg = self.socket.recv(SIZE).decode()
+                print(f"[RECV] RESULT message received:\n{msg}")  # ✅ 결과 수신 로그
                 return f"Winner: {winner}" in msg
             except:
                 return False
         else:
             result = f"RESULT ETTTP/1.0\r\nHost: {self.recv_ip}\r\nWinner: {winner}\r\n\r\n"
+            print(f"[SEND] Sending RESULT:{result}")  
             try:
                 self.socket.send(result.encode())
                 return True
