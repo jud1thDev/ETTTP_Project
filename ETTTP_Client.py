@@ -53,7 +53,7 @@ if __name__ == '__main__':
         client_socket.send(ack_msg.encode())
         
         # 게임 시작!
-        root = TTT(target_socket=client_socket, src_addr=MY_IP,dst_addr=SERVER_IP)
+        root = TTT(target_socket=client_socket, src_addr=(MY_IP, 0), dst_addr=(SERVER_IP, 12000))
         root.play(start_user=start)
         root.mainloop()
         client_socket.close()

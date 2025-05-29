@@ -59,7 +59,11 @@ if __name__ == '__main__':
             continue
         
         # 게임 시작!
-        root = TTT(client=False,target_socket=client_socket, src_addr=MY_IP,dst_addr=client_addr[0])
+        root = TTT(
+              client=False,
+              target_socket=client_socket,
+              src_addr=(MY_IP, 0),  
+              dst_addr=(client_addr[0], client_addr[1])  )
         root.play(start_user=start)
         root.mainloop()
         

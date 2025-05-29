@@ -4,6 +4,7 @@ import tkinter as tk
 from socket import *
 import _thread
 import re
+from ETTTP_Protocol import ETTTPProtocol, ETTTPError
 
 SIZE=1024
 
@@ -21,6 +22,8 @@ class TTT(tk.Tk):
         self.send_ip = dst_addr
         self.recv_ip = src_addr
         
+        self.proto = ETTTPProtocol(my_ip=src_addr[0], peer_ip=dst_addr[0])
+
         self.total_cells = 9
         self.line_size = 3
         
@@ -211,33 +214,37 @@ class TTT(tk.Tk):
             data = self.socket.recv(SIZE)
             msg = data.decode()
             print("[RECV] Message received:")
-            for line in msg.strip().split("\r\n"):
-                print(f"    {line}")
+            print(msg)
         except Exception as err:
             print("[ERROR] 메시지 수신 실패:", err)
             self.quit()
             return
 
-        if not check_msg(msg, self.recv_ip):
+        if not self.proto.check_format(msg, expected_type="SEND"): 
             print("[ERROR] 메시지 포맷 오류")
             self.quit()
             return
 
-        match = re.search(r"New-Move: \((\d+),(\d+)\)", msg)
-        if match:
-            row = int(match.group(1))
-            col = int(match.group(2))
+        try:
+            method, fields = self.proto.parse_message(msg) 
+            move = fields.get("New-Move")
+            row, col = eval(move)
             loc = row * 3 + col
-        else:
-            print("[ERROR] move 좌표 파싱 실패")
+        except Exception as e:
+            print("[ERROR] move 좌표 파싱 실패:", e)
             self.quit()
             return
 
-        ack = f"ACK ETTTP/1.0\r\nHost: {self.recv_ip}\r\nNew-Move: ({row},{col})\r\n\r\n"
-        print("[SEND] Sending ACK:")
-        for line in ack.strip().split("\r\n"):
-            print(f"    {line}")
-        self.socket.send(ack.encode())
+        try:
+            ack = self.proto.create_ack(method, f"New-Move: ({row},{col})")  
+            print("[SEND] Sending ACK:")
+            print(ack)
+            self.socket.send(ack.encode())
+        except Exception as e:
+            print("[ERROR] ACK 전송 실패:", e)
+            self.quit()
+            return
+
         ######################################################   
             
             
@@ -261,7 +268,7 @@ class TTT(tk.Tk):
             return
         # get message from the input box
         d_msg = self.t_debug.get(1.0,"end")
-        d_msg = d_msg.replace("\\r\\n","\r\n")   # msg is sanitized as \r\n is modified when it is given as input
+        d_msg = d_msg.replace("\\r\\n","\r\n")  
         self.t_debug.delete(1.0,"end")
         
         ###################  Fill Out  #######################
@@ -273,17 +280,17 @@ class TTT(tk.Tk):
             self.quit()
             return
 
-        if not check_msg(ack, self.recv_ip):
+        if not self.proto.check_format(ack, expected_type="ACK"):
             print("[ERROR] ACK 포맷 오류")
             self.quit()
             return
 
-        match = re.search(r"New-Move: \((\d+),(\d+)\)", d_msg)
-        if match:
-            r = int(match.group(1))
-            c = int(match.group(2))
+        try:
+            _, fields = self.proto.parse_message(d_msg)  
+            move = fields.get("New-Move")
+            r, c = eval(move)
             loc = r * 3 + c
-        else:
+        except:
             print("[ERROR] 디버그 move 좌표 추출 실패")
             return
 
@@ -310,7 +317,7 @@ class TTT(tk.Tk):
         ###################  Fill Out  #######################
 
         # send message and check ACK
-        message = f"SEND ETTTP/1.0\r\nHost: {self.recv_ip}\r\nNew-Move: ({row},{col})\r\n\r\n"
+        message = self.proto.create_send_move(row, col)
         print(f"[SEND] Sending move: ({row}, {col})")
 
         try:
@@ -319,7 +326,7 @@ class TTT(tk.Tk):
             print("[RECV] ACK Received:")
             for line in ack.strip().split("\r\n"):
                 print(f"    {line}")
-            if not check_msg(ack, self.recv_ip):
+            if not self.proto.check_format(ack, expected_type="ACK"):
                 print("[ERROR] ACK 검증 실패")
                 return False
             return True
@@ -341,30 +348,22 @@ class TTT(tk.Tk):
                 msg = self.socket.recv(SIZE).decode()
                 print("[RECV] RESULT message received:")
                 print(msg)
-
-            # 그냥 문자열에 내가 보낸 Winner가 포함돼 있는지만 체크함
-                if f"Winner: {winner}" in msg:
-                   return True
-                else:
-                   return False
+                _, fields = self.proto.parse_message(msg) 
+                received = fields.get("Winner")
+                return received == winner
             except Exception as e:
-               print("[ERROR] 결과 수신 중 오류:", e)
-               return False
+                print("[ERROR] 결과 수신 중 오류:", e)
+                return False
         else:
-        # 내가 먼저 결과를 보낼 때
-           result = "RESULT ETTTP/1.0\r\n"
-           result += f"Host: {self.recv_ip}\r\n"
-           result += f"Winner: {winner}\r\n\r\n"
-
-           print("[SEND] Sending RESULT:")
-           print(result)
-
-           try:
-               self.socket.send(result.encode())
-               return True
-           except Exception as e:
-            print("[ERROR] 결과 전송 실패:", e)
-            return False
+            result = self.proto.create_result(winner) 
+            print("[SEND] Sending RESULT:")
+            print(result)
+            try:
+                self.socket.send(result.encode())
+                return True
+            except Exception as e:
+                print("[ERROR] 결과 전송 실패:", e)
+                return False
 
         ######################################################  
 
