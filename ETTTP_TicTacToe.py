@@ -34,9 +34,9 @@ class TTT(tk.Tk):
             self.myID = 1   #0: server, 1: client
             self.title('34743-01-Tic-Tac-Toe Client')
             self.user = {'value': self.line_size+1, 'bg': 'blue',
-                     'win': 'Result: You Won!', 'text':'O','Name':"YOU"}
+                     'win': 'Result: You Won!', 'text':'O','Name':"ME"}
             self.computer = {'value': 1, 'bg': 'orange',
-                             'win': 'Result: You Lost!', 'text':'X','Name':"ME"}   
+                             'win': 'Result: You Lost!', 'text':'X','Name':"YOU"}   
         else:
             self.myID = 0
             self.title('34743-01-Tic-Tac-Toe Server')
@@ -319,6 +319,7 @@ class TTT(tk.Tk):
         # send message and check ACK
         message = self.proto.create_send_move(row, col)
         print(f"[SEND] Sending move: ({row}, {col})")
+        print() # 띄어쓰기
 
         try:
             self.socket.send(message.encode())
@@ -326,9 +327,10 @@ class TTT(tk.Tk):
             print("[RECV] ACK Received:")
             for line in ack.strip().split("\r\n"):
                 print(f"    {line}")
+            print() # 띄어쓰기
             if not self.proto.check_format(ack, expected_type="ACK"):
                 print("[ERROR] ACK 검증 실패")
-                return False
+                return False             
             return True
         except Exception as e:
             print("[ERROR] move 전송 실패:", e)

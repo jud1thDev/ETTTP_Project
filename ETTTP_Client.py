@@ -24,7 +24,7 @@ if __name__ == '__main__':
         
         # 서버로부터 시작 메세지 수신
         start_msg = client_socket.recv(SIZE).decode()
-        print("[CLIENT] Received message:\n" + start_msg)
+        print("[CLIENT] Message received:\n" + start_msg)
 
         # 메시지 형식 검사
         if not check_msg(start_msg, SERVER_IP):
