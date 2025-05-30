@@ -18,11 +18,10 @@ if __name__ == '__main__':
     server_socket = socket(AF_INET,SOCK_STREAM)
     server_socket.bind(('',SERVER_PORT))
     server_socket.listen()
-    print('[SERVER] Waiting for incoming connection...')
+    print('[SERVER] Waiting for client..')
     
     while True:
         client_socket, client_addr = server_socket.accept()
-        print(f"[SERVER] Connected to {client_addr}")
     
         # 누가 먼저 시작할지 랜덤으로 결정
         start = random.randrange(0,2) 
@@ -37,10 +36,8 @@ if __name__ == '__main__':
         
         # 클라이언트로부터 ACK 수신
         ack_msg = client_socket.recv(SIZE).decode()
-        print("[SERVER] Received ACK:\n" + ack_msg)
 
         if not check_msg(ack_msg, MY_IP):
-            print("[SERVER] Invalid ACK message. Closing socket.")
             client_socket.close()
             break
 
@@ -50,11 +47,9 @@ if __name__ == '__main__':
             ack_first_move = ack_lines[2].split(':')[1].strip()
 
             if (start == 0 and ack_first_move != "YOU") or (start == 1 and ack_first_move != "ME"):
-                print("[SERVER] ACK First-Move mismatch. Closing connection.")
                 client_socket.close()
                 continue
         except Exception as e:
-            print(f"[SERVER] ACK Parsing Error: {e}")
             client_socket.close()
             continue
         
