@@ -26,7 +26,10 @@ class TTT(tk.Tk):
 
         self.total_cells = 9
         self.line_size = 3
-        
+
+        # 엣지 케이스 처리를 위한 플래그
+        self.result_received = False
+        self.result_sent = False
         
         # Set variables for Client and Server UI
         ############## updated ###########################
@@ -346,17 +349,42 @@ class TTT(tk.Tk):
         # no skeleton
         ###################  Fill Out  #######################
         if get:
+            # 엣지 케이스(더블로 승리 조건 만족) 처리: 중복 수신 방지
+            if self.result_received:
+                return True
+            
             try:
                 msg = self.socket.recv(SIZE).decode()
                 print("[RECV] RESULT message received:")
                 print(msg)
-                _, fields = self.proto.parse_message(msg) 
+
+                # 엣지 케이스(더블로 승리 조건 만족) 처리: 중복 수신 방지
+                parts = msg.strip().split("\r\n\r\n")
+                first_msg = parts[0] + "\r\n\r\n"
+
+                _, fields = self.proto.parse_message(first_msg) 
                 received = fields.get("Winner")
-                return received == winner
+
+                self.result_received = True # 엣지 케이스 처리: 플래그 설정
+
+                if received == "ME":
+                    return winner == "YOU"
+                elif received == "YOU":
+                    return winner == "ME"
+                elif received == "DRAW":
+                    return winner == "DRAW"
+                else:
+                    return False
+                
             except Exception as e:
                 print("[ERROR] 결과 수신 중 오류:", e)
                 return False
         else:
+            # 엣지 케이스(더블로 승리 조건 만족) 처리: 중복 수신 방지
+            if self.result_sent:
+                return True
+            
+            self.result_sent = True  # 엣지 케이스 처리: 플래그 설정
             result = self.proto.create_result(winner) 
             print("[SEND] Sending RESULT:")
             print(result)
