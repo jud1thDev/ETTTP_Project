@@ -38,10 +38,10 @@ if __name__ == '__main__':
 
             if server_first_move == "YOU":
                 start = 1  # client starts
-                client_ack_move = "YOU"
+                client_ack_move = "ME"
             else:
                 start = 0  # server starts
-                client_ack_move = "ME"
+                client_ack_move = "YOU"
         except Exception as e:
             print(f"[CLIENT] Failed to parse message: {e}")
             client_socket.close()

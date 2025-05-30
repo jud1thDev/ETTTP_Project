@@ -49,7 +49,7 @@ if __name__ == '__main__':
             ack_lines = ack_msg.split('\r\n')
             ack_first_move = ack_lines[2].split(':')[1].strip()
 
-            if (start == 0 and ack_first_move != "ME") or (start == 1 and ack_first_move != "YOU"):
+            if (start == 0 and ack_first_move != "YOU") or (start == 1 and ack_first_move != "ME"):
                 print("[SERVER] ACK First-Move mismatch. Closing connection.")
                 client_socket.close()
                 continue
