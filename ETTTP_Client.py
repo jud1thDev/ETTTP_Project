@@ -20,6 +20,7 @@ if __name__ == '__main__':
     
     with socket(AF_INET, SOCK_STREAM) as client_socket:
         client_socket.connect(SERVER_ADDR)  
+        ###################################################################
         print("[CLIENT] Connected to server.")
         
         # 서버로부터 시작 메세지 수신
@@ -52,6 +53,7 @@ if __name__ == '__main__':
         print("[SEND] Sending ACK:\n" + ack_msg)
         client_socket.send(ack_msg.encode())
         
+        ###################################################################
         # 게임 시작!
         root = TTT(target_socket=client_socket, src_addr=(MY_IP, 0), dst_addr=(SERVER_IP, 12000))
         root.play(start_user=start)

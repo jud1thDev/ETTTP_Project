@@ -25,6 +25,7 @@ if __name__ == '__main__':
     
         # 누가 먼저 시작할지 랜덤으로 결정
         start = random.randrange(0,2) 
+        ###################################################################
         if start == 0:
             first_player = "ME" 
         else:
@@ -53,6 +54,8 @@ if __name__ == '__main__':
             client_socket.close()
             continue
         
+        ###################################################################
+
         # 게임 시작!
         root = TTT(
               client=False,
