@@ -214,38 +214,39 @@ class TTT(tk.Tk):
         ###################  Fill Out  #######################
 
         try:
-            data = self.socket.recv(SIZE)
-            msg = data.decode()
+            data = self.socket.recv(SIZE)  # 상대방으로부터 데이터 수신
+            msg = data.decode()  # byte 데이터를 문자열로 디코딩
             print("[RECV] Message received:")
-            print(msg)
+            print(msg)  # 수신된 메시지를 출력
         except Exception as err:
-            print("[ERROR] 메시지 수신 실패:", err)
-            self.quit()
+            print("[ERROR] 메시지 수신 실패:", err)  # 예외 발생 시 메시지 출력
+            self.quit()  # GUI 종료
             return
 
+        # 메시지 형식이 SEND 타입인지 확인
         if not self.proto.check_format(msg, expected_type="SEND"): 
             print("[ERROR] 메시지 포맷 오류")
-            self.quit()
+            self.quit()  # 형식 오류 시 종료
             return
 
         try:
-            method, fields = self.proto.parse_message(msg) 
-            move = fields.get("New-Move")
-            row, col = eval(move)
-            loc = row * 3 + col
+            method, fields = self.proto.parse_message(msg)  # 메시지를 파싱하여 메서드와 필드 추출
+            move = fields.get("New-Move")  # "New-Move" 필드에서 좌표 문자열 가져오기
+            row, col = eval(move)  # 문자열 좌표를 튜플로 변환 (예: "(1,2)" → (1, 2))
+            loc = row * 3 + col   # 2D 좌표를 1D 인덱스로 변환
         except Exception as e:
-            print("[ERROR] move 좌표 파싱 실패:", e)
-            self.quit()
+            print("[ERROR] move 좌표 파싱 실패:", e)  # 파싱 실패 시 에러 출력
+            self.quit()   # GUI 종료
             return
 
         try:
-            ack = self.proto.create_ack(method, f"New-Move: ({row},{col})")  
+            ack = self.proto.create_ack(method, f"New-Move: ({row},{col})")  # ACK 메시지 생성
             print("[SEND] Sending ACK:")
-            print(ack)
-            self.socket.send(ack.encode())
+            print(ack)   # 전송할 ACK 출력
+            self.socket.send(ack.encode())   # ACK 메시지를 전송
         except Exception as e:
-            print("[ERROR] ACK 전송 실패:", e)
-            self.quit()
+            print("[ERROR] ACK 전송 실패:", e)   # 전송 실패 시 에러 출력
+            self.quit()  # GUI 종료
             return
 
         ######################################################   
@@ -276,24 +277,31 @@ class TTT(tk.Tk):
         
         ###################  Fill Out  #######################
         try:
+            # 소켓을 통해 메시지를 전송
             self.socket.send(d_msg.encode())
+            # 소켓을 통해 ACK 수신
             ack = self.socket.recv(SIZE).decode()
         except Exception as e:
+            # 예외 발생 시 에러 출력 후 게임 종료
             print("[ERROR] 디버그 메시지 송수신 실패:", e)
             self.quit()
             return
 
+        # ACK 메시지의 형식이 올바른지 확인
         if not self.proto.check_format(ack, expected_type="ACK"):
             print("[ERROR] ACK 포맷 오류")
             self.quit()
             return
 
         try:
+            # 전송한 메시지 파싱하여 필드 추출
             _, fields = self.proto.parse_message(d_msg)  
+            # 필드에서 좌표 정보 추출
             move = fields.get("New-Move")
             r, c = eval(move)
             loc = r * 3 + c
         except:
+            # 추출 실패 시 에러 메시지 출력 후 리턴
             print("[ERROR] 디버그 move 좌표 추출 실패")
             return
 
@@ -319,23 +327,29 @@ class TTT(tk.Tk):
         row,col = divmod(selection,3)
         ###################  Fill Out  #######################
 
-        # send message and check ACK
+        # 프로토콜을 통해 move 메시지 생성
         message = self.proto.create_send_move(row, col)
         print(f"[SEND] Sending move: ({row}, {col})")
-        print() # 띄어쓰기
+        print() 
 
         try:
+            # 소켓을 통해 메시지를 전송
             self.socket.send(message.encode())
+            # ACK 수신
             ack = self.socket.recv(SIZE).decode()
             print("[RECV] ACK Received:")
             for line in ack.strip().split("\r\n"):
                 print(f"    {line}")
-            print() # 띄어쓰기
+            print() 
+
+            # ACK 메시지 포맷 검사
             if not self.proto.check_format(ack, expected_type="ACK"):
                 print("[ERROR] ACK 검증 실패")
                 return False             
+            # ACK 메시지가 올바르면 True 반환    
             return True
         except Exception as e:
+            # 예외 발생 시 에러 출력 후 False 반환
             print("[ERROR] move 전송 실패:", e)
             return False
         ######################################################  
@@ -354,29 +368,29 @@ class TTT(tk.Tk):
                 return True
             
             try:
-                msg = self.socket.recv(SIZE).decode()
+                msg = self.socket.recv(SIZE).decode()  # 소켓으로부터 메시지 수신
                 print("[RECV] RESULT message received:")
-                print(msg)
+                print(msg)  # 수신된 메시지 출력
 
                 # 엣지 케이스(더블로 승리 조건 만족) 처리: 중복 수신 방지
-                parts = msg.strip().split("\r\n\r\n")
-                first_msg = parts[0] + "\r\n\r\n"
+                parts = msg.strip().split("\r\n\r\n")  # 메시지를 헤더와 바디로 분리
+                first_msg = parts[0] + "\r\n\r\n"   # 첫 메시지 형식만 따로 추출
 
-                _, fields = self.proto.parse_message(first_msg) 
-                received = fields.get("Winner")
+                _, fields = self.proto.parse_message(first_msg)  # 프로토콜 파싱하여 필드 추출
+                received = fields.get("Winner")  # Winner 필드 가져오기
 
-                self.result_received = True # 엣지 케이스 처리: 플래그 설정
+                self.result_received = True # 중복 수신 방지를 위한 플래그 설정
 
-                if received == "ME":
+                if received == "ME":   # 상대가 ME라고 보낸 경우, 내가 YOU여야 함
                     return winner == "YOU"
-                elif received == "YOU":
+                elif received == "YOU":   # 상대가 YOU라고 보낸 경우, 내가 ME여야 함
                     return winner == "ME"
-                elif received == "DRAW":
+                elif received == "DRAW":   # 무승부 처리
                     return winner == "DRAW"
                 else:
-                    return False
+                    return False   # 예상과 다른 Winner 값 처리
                 
-            except Exception as e:
+            except Exception as e:  # 예외 발생 시 출력
                 print("[ERROR] 결과 수신 중 오류:", e)
                 return False
         else:
@@ -384,15 +398,15 @@ class TTT(tk.Tk):
             if self.result_sent:
                 return True
             
-            self.result_sent = True  # 엣지 케이스 처리: 플래그 설정
-            result = self.proto.create_result(winner) 
+            self.result_sent = True  # 중복 송신 방지를 위한 플래그 설정
+            result = self.proto.create_result(winner)  # 프로토콜 객체를 통해 RESULT 메시지 생성
             print("[SEND] Sending RESULT:")
-            print(result)
+            print(result)  # 생성된 메시지 출력
             try:
-                self.socket.send(result.encode())
+                self.socket.send(result.encode())  # 메시지 송신
                 return True
             except Exception as e:
-                print("[ERROR] 결과 전송 실패:", e)
+                print("[ERROR] 결과 전송 실패:", e)  # 예외 발생 시 출력
                 return False
 
         ######################################################  
@@ -446,28 +460,38 @@ def check_msg(msg, recv_ip):
     '''
     ###################  Fill Out  #######################
 
+    # 메시지를 줄 단위로 나눔 (CRLF 기준)
     lines = msg.strip().split("\r\n")
 
+    # 메시지가 너무 짧으면 잘못된 형식으로 간주
     if len(lines) < 3:
         print("[check_msg] 줄 수 부족")
         return False
 
+    # 첫 번째 줄은 메서드 라인 (예: "SEND ETTTP/1.0")
     method_line = lines[0]
+
+    # method line이 SEND, ACK, RESULT 중 하나로 시작하지 않으면 에러
     if not (method_line.startswith("SEND ETTTP/1.0") or 
             method_line.startswith("ACK ETTTP/1.0") or 
             method_line.startswith("RESULT ETTTP/1.0")):
         print(f"[check_msg] 잘못된 method line: {method_line}")
         return False
 
+    # Host 필드가 있는지 확인
     has_host = any(line.startswith("Host:") for line in lines)
+     # New-Move, First-Move, Winner 중 적어도 하나의 필드가 있는지 확인
     has_valid_field = any("New-Move:" in line or "First-Move:" in line or "Winner:" in line for line in lines)
 
+    # Host 필드가 없으면 에러
     if not has_host:
         print("[check_msg] Host 필드 없음")
         return False
+    # 필수 필드가 없으면 에러
     if not has_valid_field:
         print("[check_msg] 필수 필드 없음 (New-Move / First-Move / Winner)")
         return False
 
+    # 모든 조건 통과 시 유효한 메시지로 간주
     return True
     ######################################################  
